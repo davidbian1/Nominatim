@@ -332,6 +332,19 @@ def test_lookup_in_osmline_split_interpolation(apiobj, frontend):
         assert result.place_id == 1002
 
 
+def test_lookup_osmline_housenumber_not_shadowed_by_placex_class_fallback(apiobj, frontend):
+    apiobj.add_placex(place_id=332, osm_type='W', osm_id=9,
+                      class_='highway', type='residential')
+    apiobj.add_osmline(place_id=1000, osm_id=9,
+                       startnumber=2, endnumber=4, step=1)
+
+    api = frontend(apiobj, options={'details'})
+    result = api.details(napi.OsmID('W', 9, '3'))
+
+    assert result.place_id == 1000
+    assert result.source_table.name == 'OSMLINE'
+
+
 def test_lookup_osmline_with_address_details(apiobj, frontend):
     apiobj.add_osmline(place_id=9000, osm_id=9,
                        startnumber=2, endnumber=4, step=1,
@@ -606,15 +619,17 @@ def test_lookup_postcode_with_address_details(apiobj, frontend, lookup):
            ]
 
 
-@pytest.mark.parametrize('objid', [napi.PlaceID(1736),
-                                   napi.OsmID('W', 55),
-                                   napi.OsmID('N', 55, 'amenity')])
-def test_lookup_missing_object(apiobj, frontend, objid):
+@pytest.mark.parametrize('objid,expected_place_id', [(napi.PlaceID(1736), None),
+                                                     (napi.OsmID('W', 55), None),
+                                                     (napi.OsmID('N', 55, 'amenity'), 1)])
+def test_lookup_missing_object(apiobj, frontend, objid, expected_place_id):
     apiobj.add_placex(place_id=1, osm_type='N', osm_id=55,
                       class_='place', type='suburb')
 
     api = frontend(apiobj, options={'details'})
-    assert api.details(objid) is None
+    result = api.details(objid)
+
+    assert (result.place_id if result else None) == expected_place_id
 
 
 @pytest.mark.parametrize('gtype', (napi.GeometryFormat.KML,
