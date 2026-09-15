@@ -619,17 +619,31 @@ def test_lookup_postcode_with_address_details(apiobj, frontend, lookup):
            ]
 
 
-@pytest.mark.parametrize('objid,expected_place_id', [(napi.PlaceID(1736), None),
-                                                     (napi.OsmID('W', 55), None),
-                                                     (napi.OsmID('N', 55, 'amenity'), 1)])
-def test_lookup_missing_object(apiobj, frontend, objid, expected_place_id):
+@pytest.mark.parametrize('objid', [napi.PlaceID(1736),
+                                   napi.OsmID('W', 55)])
+def test_lookup_missing_object(apiobj, frontend, objid):
     apiobj.add_placex(place_id=1, osm_type='N', osm_id=55,
                       class_='place', type='suburb')
 
     api = frontend(apiobj, options={'details'})
-    result = api.details(objid)
+    assert api.details(objid) is None
 
-    assert (result.place_id if result else None) == expected_place_id
+
+def test_lookup_class_mismatch_falls_back_to_osm_id(apiobj, frontend):
+    """ When no placex entry has the requested class, the lookup falls
+        back to the entry with the given OSM ID regardless of its class,
+        since OSM objects are no longer split into one placex entry per
+        main tag.
+    """
+    apiobj.add_placex(place_id=1, osm_type='N', osm_id=55,
+                      class_='place', type='suburb')
+
+    api = frontend(apiobj, options={'details'})
+    result = api.details(napi.OsmID('N', 55, 'amenity'))
+
+    assert result is not None
+    assert result.place_id == 1
+    assert result.category == ('place', 'suburb')
 
 
 @pytest.mark.parametrize('gtype', (napi.GeometryFormat.KML,
