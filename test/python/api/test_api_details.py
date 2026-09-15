@@ -630,11 +630,6 @@ def test_lookup_missing_object(apiobj, frontend, objid):
 
 
 def test_lookup_class_mismatch_falls_back_to_osm_id(apiobj, frontend):
-    """ When no placex entry has the requested class, the lookup falls
-        back to the entry with the given OSM ID regardless of its class,
-        since OSM objects are no longer split into one placex entry per
-        main tag.
-    """
     apiobj.add_placex(place_id=1, osm_type='N', osm_id=55,
                       class_='place', type='suburb')
 
